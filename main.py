@@ -135,8 +135,9 @@ async def delete_subject(ctx, subject: str):
 @bot.slash_command(guild_ids=GUILD_IDS)
 async def help(ctx):
     command_and_description = {
+        "/notify_me": "通知を受け取るかどうかを設定する",
         "/add_hw": "課題を追加する",
-        "/get_hw_week": "1か月以内の課題を取得する",
+        "/get_hw_week": "1週間以内の課題を取得する",
         "/get_hw_month": "30日以内の全ての課題を取得する",
         "/delete_hw": "課題を削除する",
         "/add_subject": "教科を追加する",
@@ -161,8 +162,6 @@ async def periodic_func():
     now = datetime.now(timezone(timedelta(hours=9))).strftime('%H:%M')
     if now == '00:00' or now == '12:00':
         await task()
-    # For debug
-    await task()
 
 
 if __name__ == "__main__":
