@@ -49,11 +49,11 @@ class Database:
         self.cursor.execute("SELECT subject, hw, due_date FROM homework")
         return self.cursor.fetchall()
 
-    def delete_hw(self, subject, hw):
-        self.cursor.execute("SELECT * FROM homework WHERE subject = %s AND hw = %s", (subject, hw))
+    def delete_hw(self, subject, hw, due_date):
+        self.cursor.execute("SELECT * FROM homework WHERE subject = %s AND hw = %s AND due_date = %s", (subject, hw, due_date))
         if not self.cursor.fetchone():
             return False
-        self.cursor.execute("DELETE FROM homework WHERE subject = %s AND hw = %s", (subject, hw))
+        self.cursor.execute("DELETE FROM homework WHERE subject = %s AND hw = %s AND due_date = %s", (subject, hw, due_date))
         self.connection.commit()
 
     def add_subject(self, subject):

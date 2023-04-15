@@ -99,10 +99,10 @@ async def get_hw_month(ctx):
         await send_message(ctx, "Reminder HW", "課題は登録されてないよ！", 0xff0000, True)
 
 @bot.slash_command(guild_ids=GUILD_IDS)
-async def delete_hw(ctx, subject: str, hw: str):
+async def delete_hw(ctx, subject: str, hw: str, due_date: str):
     """課題を削除する"""
-    if database.delete_hw(subject, hw):
-        await send_message(ctx, "Reminder HW", f"教科: {subject}\n課題: {hw}\nを削除したよ!", 0x00ffff, False)
+    if database.delete_hw(subject, hw, due_date):
+        await send_message(ctx, "Reminder HW", f"教科: {subject}\n課題: {hw}\n期限: {due_date}\nを削除したよ！", 0x00ffff, False)
     else:
         await send_message(ctx, "Reminder HW", "その課題は登録されてないよ！", 0xff0000, True)
 
