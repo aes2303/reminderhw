@@ -82,6 +82,7 @@ async def get_hw_week(ctx):
     """1週間以内の全ての課題を取得する"""
     homework = database.get_all_hw()
     homework = [hw for hw in homework if 0 <= (datetime.strptime(hw[2], "%Y/%m/%d") - datetime.now()).days + 1 <= 6]
+    homework.sort(key=lambda x: datetime.strptime(x[2], "%Y/%m/%d"))
     if homework:
         homework = "\n".join([f"[{hw[0]}] {hw[1]} ({hw[2]})" for hw in homework])
         await send_message(ctx, "Reminder HW", homework + "\n⚠ 自己責任でお願いします。通常、提出時間は記載されていないので注意してください。", 0x00ffff, True)
@@ -93,6 +94,7 @@ async def get_hw_month(ctx):
     """30日以内の教科の課題を取得する"""
     homework = database.get_all_hw()
     homework = [hw for hw in homework if 0 <= (datetime.strptime(hw[2], "%Y/%m/%d") - datetime.now()).days + 1 <= 29]
+    homework.sort(key=lambda x: datetime.strptime(x[2], "%Y/%m/%d"))
     if homework:
         homework = "\n".join([f"[{hw[0]}] {hw[1]} ({hw[2]})" for hw in homework])
         await send_message(ctx, "Reminder HW", homework + "\n⚠ 自己責任でお願いします。通常、提出時間は記載されていないので注意してください。", 0x00ffff, True)
