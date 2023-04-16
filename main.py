@@ -26,7 +26,8 @@ async def send_message(ctx, title, description, color, ephemeral):
     await ctx.respond(embed=embed, ephemeral=ephemeral)
 
 async def notify_message(bot, title, description, color):
-    channel = discord.utils.get(bot.get_all_channels(), name=NOTIFY_CHANNEL_NAME)
+    guild = discord.utils.get(bot.guilds, id=GUILD_IDS[0])
+    channel = discord.utils.get(guild.channels, name=NOTIFY_CHANNEL_NAME)
     embed = discord.Embed(title=title, description=description, color=color)
     notify_role_id = discord.utils.get(channel.guild.roles, name="notify").id
     await channel.send(f"<@&{notify_role_id}>", embed=embed)
@@ -83,7 +84,7 @@ async def get_hw_week(ctx):
     homework = [hw for hw in homework if 0 <= (datetime.strptime(hw[2], "%Y/%m/%d") - datetime.now()).days + 1 <= 6]
     if homework:
         homework = "\n".join([f"[{hw[0]}] {hw[1]} ({hw[2]})" for hw in homework])
-        await send_message(ctx, "Reminder HW", homework, 0x00ffff, True)
+        await send_message(ctx, "Reminder HW", homework + "\n⚠ 自己責任でお願いします。通常、提出時間は記載されていないので注意してください。", 0x00ffff, True)
     else:
         await send_message(ctx, "Reminder HW", "課題は登録されてないよ！", 0xff0000, True)
 
@@ -94,7 +95,7 @@ async def get_hw_month(ctx):
     homework = [hw for hw in homework if 0 <= (datetime.strptime(hw[2], "%Y/%m/%d") - datetime.now()).days + 1 <= 29]
     if homework:
         homework = "\n".join([f"[{hw[0]}] {hw[1]} ({hw[2]})" for hw in homework])
-        await send_message(ctx, "Reminder HW", homework, 0x00ffff, True)
+        await send_message(ctx, "Reminder HW", homework + "\n⚠ 自己責任でお願いします。通常、提出時間は記載されていないので注意してください。", 0x00ffff, True)
     else:
         await send_message(ctx, "Reminder HW", "課題は登録されてないよ！", 0xff0000, True)
 
@@ -153,9 +154,9 @@ async def task():
     if homework:
         homework = sorted(homework, key=lambda x: datetime.strptime(x[2], "%Y/%m/%d"))
         homework = "\n".join([f"[{hw[0]}] {hw[1]} ({hw[2]})" for hw in homework])
-        await notify_message(bot, "Half Day Reminder", f"1週間以内の課題を通知します\n今日の日付: {datetime.now().strftime('%Y/%m/%d')}\n{homework}", 0xffff00)
+        await notify_message(bot, "Half Day Reminder", f"1週間以内の課題を通知します\n今日の日付: {datetime.now().strftime('%Y/%m/%d')}\n{homework}\n⚠ 自己責任でお願いします。通常、提出時間は記載されていないので注意してください。", 0xffff00)
     else:
-        await notify_message(bot, "Half Day Reminder", "1週間以内の課題は登録されてないよ！", 0xffff00)
+        await notify_message(bot, "Half Day Reminder", "1週間以内の課題は登録されてないよ！\n⚠ 自己責任でお願いします。通常、提出時間は記載されていないので注意してください。", 0xffff00)
 
 @tasks.loop(seconds=40)
 async def periodic_func():
