@@ -68,7 +68,7 @@ async def add_hw(ctx, subject: str, hw: str, due_date: str):
         await send_message(ctx, "Reminder HW", "期限の形式が違うよ！\nYYYY/MM/DDで入力してね！", 0xff0000, True)
         return
 
-    if (datetime.strptime(due_date, '%Y/%m/%d') - datetime.now()).days < 0:
+    if (datetime.strptime(due_date, '%Y/%m/%d') - datetime.now(timezone(timedelta(hours=9)))).days < 0:
         await send_message(ctx, "Reminder HW", "期限が過去の日付だよ！", 0xff0000, True)
         return
 
@@ -81,7 +81,7 @@ async def add_hw(ctx, subject: str, hw: str, due_date: str):
 async def get_hw_week(ctx):
     """1週間以内の全ての課題を取得する"""
     homework = database.get_all_hw()
-    homework = [hw for hw in homework if 0 <= (datetime.strptime(hw[2], "%Y/%m/%d") - datetime.now()).days + 1 <= 6]
+    homework = [hw for hw in homework if 0 <= (datetime.strptime(hw[2], "%Y/%m/%d") - datetime.now(timezone(timedelta(hours=9)))).days + 1 <= 6]
     homework.sort(key=lambda x: datetime.strptime(x[2], "%Y/%m/%d"))
     if homework:
         homework = "\n".join([f"[{hw[0]}] {hw[1]} ({hw[2]})" for hw in homework])
@@ -93,7 +93,7 @@ async def get_hw_week(ctx):
 async def get_hw_month(ctx):
     """30日以内の教科の課題を取得する"""
     homework = database.get_all_hw()
-    homework = [hw for hw in homework if 0 <= (datetime.strptime(hw[2], "%Y/%m/%d") - datetime.now()).days + 1 <= 29]
+    homework = [hw for hw in homework if 0 <= (datetime.strptime(hw[2], "%Y/%m/%d") - datetime.now(timezone(timedelta(hours=9)))).days + 1 <= 29]
     homework.sort(key=lambda x: datetime.strptime(x[2], "%Y/%m/%d"))
     if homework:
         homework = "\n".join([f"[{hw[0]}] {hw[1]} ({hw[2]})" for hw in homework])
@@ -152,11 +152,11 @@ async def help(ctx):
 # 1週間以内の課題を取得して、期限が近い順に並べて通知する
 async def task():
     homework = database.get_all_hw()
-    homework = [hw for hw in homework if 0 <= (datetime.strptime(hw[2], "%Y/%m/%d") - datetime.now()).days + 1 <= 6]
+    homework = [hw for hw in homework if 0 <= (datetime.strptime(hw[2], "%Y/%m/%d") - datetime.now(timezone(timedelta(hours=9)))).days + 1 <= 6]
     if homework:
         homework = sorted(homework, key=lambda x: datetime.strptime(x[2], "%Y/%m/%d"))
         homework = "\n".join([f"[{hw[0]}] {hw[1]} ({hw[2]})" for hw in homework])
-        await notify_message(bot, "Half Day Reminder", f"1週間以内の課題を通知します\n今日の日付: {datetime.now().strftime('%Y/%m/%d')}\n{homework}\n⚠ 自己責任でお願いします。通常、提出時間は記載されていないので注意してください。", 0xffff00)
+        await notify_message(bot, "Half Day Reminder", f"1週間以内の課題を通知します\n今日の日付: {datetime.now(timezone(timedelta(hours=9))).strftime('%Y/%m/%d')}\n{homework}\n⚠ 自己責任でお願いします。通常、提出時間は記載されていないので注意してください。", 0xffff00)
     else:
         await notify_message(bot, "Half Day Reminder", "1週間以内の課題は登録されてないよ！\n⚠ 自己責任でお願いします。通常、提出時間は記載されていないので注意してください。", 0xffff00)
 
