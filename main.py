@@ -1,4 +1,4 @@
-import asyncio, discord, mysql.connector, os
+import asyncio, discord, mysql.connector, os, pytz
 from datetime import datetime, timezone, timedelta
 from dotenv import load_dotenv, find_dotenv
 from discord.ext import tasks
@@ -20,6 +20,8 @@ database = Database(
     os.environ.get('PASSWORD'),
     os.environ.get('DATABASE')
 )
+
+jst = pytz.timezone('Asia/Tokyo')
 
 async def send_message(ctx, title, description, color, ephemeral):
     embed = discord.Embed(title=title, description=description, color=color)
@@ -81,7 +83,7 @@ async def add_hw(ctx, subject: str, hw: str, due_date: str):
 async def get_hw_week(ctx):
     """1週間以内の全ての課題を取得する"""
     homework = database.get_all_hw()
-    homework = [hw for hw in homework if 0 <= (datetime.strptime(hw[2], "%Y/%m/%d") - datetime.now(timezone(timedelta(hours=9)))).days + 1 <= 6]
+    homework = [hw for hw in homework if 0 <= (jst.localize(datetime.strptime(hw[2], "%Y/%m/%d")) - datetime.now(timezone(timedelta(hours=9)))).days + 1 <= 6]
     homework.sort(key=lambda x: datetime.strptime(x[2], "%Y/%m/%d"))
     if homework:
         homework = "\n".join([f"[{hw[0]}] {hw[1]} ({hw[2]})" for hw in homework])
@@ -93,7 +95,7 @@ async def get_hw_week(ctx):
 async def get_hw_month(ctx):
     """30日以内の教科の課題を取得する"""
     homework = database.get_all_hw()
-    homework = [hw for hw in homework if 0 <= (datetime.strptime(hw[2], "%Y/%m/%d") - datetime.now(timezone(timedelta(hours=9)))).days + 1 <= 29]
+    homework = [hw for hw in homework if 0 <= (jst.localize(datetime.strptime(hw[2], "%Y/%m/%d")) - datetime.now(timezone(timedelta(hours=9)))).days + 1 <= 29]
     homework.sort(key=lambda x: datetime.strptime(x[2], "%Y/%m/%d"))
     if homework:
         homework = "\n".join([f"[{hw[0]}] {hw[1]} ({hw[2]})" for hw in homework])
@@ -152,7 +154,7 @@ async def help(ctx):
 # 1週間以内の課題を取得して、期限が近い順に並べて通知する
 async def task():
     homework = database.get_all_hw()
-    homework = [hw for hw in homework if 0 <= (datetime.strptime(hw[2], "%Y/%m/%d") - datetime.now(timezone(timedelta(hours=9)))).days + 1 <= 6]
+    homework = [hw for hw in homework if 0 <= (jst.localize(datetime.strptime(hw[2], "%Y/%m/%d")) - datetime.now(timezone(timedelta(hours=9)))).days + 1 <= 6]
     if homework:
         homework = sorted(homework, key=lambda x: datetime.strptime(x[2], "%Y/%m/%d"))
         homework = "\n".join([f"[{hw[0]}] {hw[1]} ({hw[2]})" for hw in homework])
