@@ -162,12 +162,20 @@ async def task():
     else:
         await notify_message(bot, "Half Day Reminder", "1週間以内の課題は登録されてないよ！\n⚠ 自己責任でお願いします。通常、提出時間は記載されていないので注意してください。", 0xffff00)
 
+first_time = True
+context = True
 @tasks.loop(seconds=40)
 async def periodic_func():
+    global first_time, context
     now = datetime.now(timezone(timedelta(hours=9))).strftime('%H:%M')
     if now == '00:00' or now == '12:00':
-        await task()
-
+        if first_time:
+            first_time = False
+            context = now == '00:00'
+            return
+        if context and now == '12:00' or not context and now == '00:00':
+            await task()
+            context = not context
 
 if __name__ == "__main__":
     bot.run(DISCORD_BOT_TOKEN)
