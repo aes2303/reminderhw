@@ -70,7 +70,7 @@ async def add_hw(ctx, subject: str, hw: str, due_date: str):
         await send_message(ctx, "Reminder HW", "期限の形式が違うよ！\nYYYY/MM/DDで入力してね！", 0xff0000, True)
         return
 
-    if (datetime.strptime(due_date, '%Y/%m/%d') - datetime.now(timezone(timedelta(hours=9)))).days < 0:
+    if (jst.localize(datetime.strptime(due_date, '%Y/%m/%d')) - datetime.now(timezone(timedelta(hours=9)))).days < 0:
         await send_message(ctx, "Reminder HW", "期限が過去の日付だよ！", 0xff0000, True)
         return
 
