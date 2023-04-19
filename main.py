@@ -83,7 +83,7 @@ async def get_homework(ctx: discord.ApplicationContext, display_id: bool = False
             if display_id:
                 embed.add_field(name=f"[{id}] {subject} {name}", value=f"{date.strftime('%Y/%m/%d %H:%M')}", inline=False)
             else:
-                embed.add_field(name=f"{subject} {name}", value=date, inline=False)
+                embed.add_field(name=f"{subject} {name}", value=f"{date.strftime('%Y/%m/%d %H:%M')}", inline=False)
         display_pages.append(embed)
     paginator = pages.Paginator(pages=display_pages, show_disabled=False)
     await paginator.respond(ctx.interaction, ephemeral=True)
