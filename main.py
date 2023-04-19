@@ -168,10 +168,12 @@ context = True
 async def periodic_func():
     global first_time, context
     now = datetime.now(timezone(timedelta(hours=9))).strftime('%H:%M')
+    print(now)
     if now == '00:00' or now == '12:00':
         if first_time:
             first_time = False
             context = now == '00:00'
+            await task()
             return
         if context and now == '12:00' or not context and now == '00:00':
             await task()
