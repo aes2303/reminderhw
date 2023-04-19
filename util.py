@@ -46,7 +46,8 @@ class HWModal(Modal):
             self.stop()
             return
 
-        self.database.add_homework(self.subject.value, self.name.value, date, self.description.value)
+        description = self.description.value.replace("\n", " ")
+        self.database.add_homework(self.subject.value, self.name.value, date, description)
 
         embed = Embed(title="課題を追加しました。", description=f"教科名: {self.subject.value}\n課題名: {self.name.value}\n締切: {date.strftime('%Y/%m/%d %H:%M')}\n説明: {self.description.value}", color=discord.Color.green())
         await interaction.response.send_message(embed=embed)
