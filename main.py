@@ -69,8 +69,9 @@ async def add_homework(ctx: discord.ApplicationContext):
     await ctx.send_modal(HWModal(database))
 
 # @param display_id: 課題IDを表示するかどうか
+# @param display_description: 課題の説明を表示するかどうか
 @bot.slash_command(guild_ids=GUILD_IDS)
-async def get_homework(ctx: discord.ApplicationContext, display_id: bool = False):
+async def get_homework(ctx: discord.ApplicationContext, display_id: bool = False, display_description: bool = False):
     """課題一覧を表示します。"""
     await ctx.defer(ephemeral=True)
     homeworks = database.get_homeworks()
@@ -118,8 +119,9 @@ async def get_homework_week(ctx: discord.ApplicationContext, display_id: bool = 
     await ctx.respond(embed=embed, ephemeral=True)
 
 # @param display_id: 課題IDを表示するかどうか
+# @param display_description: 課題の説明を表示するかどうか
 @bot.slash_command(guild_ids=GUILD_IDS)
-async def get_homework_month(ctx: discord.ApplicationContext, display_id: bool = False):
+async def get_homework_month(ctx: discord.ApplicationContext, display_id: bool = False, display_description: bool = False):
     """1カ月以内の課題を表示します。"""
     embed = Embed(title="1カ月以内の課題", color=Color.green())
     homeworks = [homework for homework in database.get_homeworks() if 0 <= get_date_diff(homework[3]) <= 30]
