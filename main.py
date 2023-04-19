@@ -79,27 +79,42 @@ async def get_homework(ctx: discord.ApplicationContext, display_id: bool = False
     for homeworks in devided_homeworks:
         embed = Embed(title="課題一覧", color=Color.green())
         for homework in homeworks:
-            id, subject, name, date = homework[0], homework[1], homework[2], homework[3]
-            if display_id:
-                embed.add_field(name=f"[{id}] {subject} {name}", value=f"{date.strftime('%Y/%m/%d %H:%M')}", inline=False)
+            id, subject, name, date, description = homework[0], homework[1], homework[2], homework[3], homework[4]
+            if display_description:
+                if description == "":
+                    value = date.strftime("%Y/%m/%d %H:%M")
+                else:
+                    value = f"{description} ({date.strftime('%Y/%m/%d %H:%M')})"
             else:
-                embed.add_field(name=f"{subject} {name}", value=f"{date.strftime('%Y/%m/%d %H:%M')}", inline=False)
+                value = date.strftime("%Y/%m/%d %H:%M")
+            if display_id:
+                embed.add_field(name=f"[{id}] {subject} {name}", value=value, inline=False)
+            else:
+                embed.add_field(name=f"{subject} {name}", value=value, inline=False)
         display_pages.append(embed)
     paginator = pages.Paginator(pages=display_pages, show_disabled=False)
     await paginator.respond(ctx.interaction, ephemeral=True)
 
 # @param display_id: 課題IDを表示するかどうか
+# @param display_description: 課題の説明を表示するかどうか
 @bot.slash_command(guild_ids=GUILD_IDS)
-async def get_homework_week(ctx: discord.ApplicationContext, display_id: bool = False):
+async def get_homework_week(ctx: discord.ApplicationContext, display_id: bool = False, display_description: bool = False):
     """1週間以内の課題を表示します。"""
     embed = Embed(title="1週間以内の課題", color=Color.green())
     homeworks = [homework for homework in sorted(database.get_homeworks(), key=lambda x: x[3]) if 0 <= get_date_diff(homework[3]) <= 7]
     for homework in homeworks:
-        id, subject, name, date = homework[0], homework[1], homework[2], homework[3]
-        if display_id:
-            embed.add_field(name=f"[{id}] {subject} {name}", value=f"{date.strftime('%Y/%m/%d %H:%M')}", inline=False)
+        id, subject, name, date, description = homework[0], homework[1], homework[2], homework[3], homework[4]
+        if display_description:
+            if description == "":
+                value = date.strftime("%Y/%m/%d %H:%M")
+            else:
+                value = f"{description} ({date.strftime('%Y/%m/%d %H:%M')})"
         else:
-            embed.add_field(name=f"{subject} {name}", value=date.strftime("%Y/%m/%d %H:%M"), inline=False)
+            value = date.strftime("%Y/%m/%d %H:%M")
+        if display_id:
+            embed.add_field(name=f"[{id}] {subject} {name}", value=value, inline=False)
+        else:
+            embed.add_field(name=f"{subject} {name}", value=value, inline=False)
     await ctx.respond(embed=embed, ephemeral=True)
 
 # @param display_id: 課題IDを表示するかどうか
@@ -109,11 +124,18 @@ async def get_homework_month(ctx: discord.ApplicationContext, display_id: bool =
     embed = Embed(title="1カ月以内の課題", color=Color.green())
     homeworks = [homework for homework in database.get_homeworks() if 0 <= get_date_diff(homework[3]) <= 30]
     for homework in homeworks:
-        id, subject, name, date = homework[0], homework[1], homework[2], homework[3]
-        if display_id:
-            embed.add_field(name=f"[{id}] {subject} {name}", value=f"{date.strftime('%Y/%m/%d %H:%M')}", inline=False)
+        id, subject, name, date, description = homework[0], homework[1], homework[2], homework[3], homework[4]
+        if display_description:
+            if description == "":
+                value = date.strftime("%Y/%m/%d %H:%M")
+            else:
+                value = f"{description} ({date.strftime('%Y/%m/%d %H:%M')})"
         else:
-            embed.add_field(name=f"{subject} {name}", value=date.strftime("%Y/%m/%d %H:%M"), inline=False)
+            value = date.strftime("%Y/%m/%d %H:%M")
+        if display_id:
+            embed.add_field(name=f"[{id}] {subject} {name}", value=value, inline=False)
+        else:
+            embed.add_field(name=f"{subject} {name}", value=value, inline=False)
     await ctx.respond(embed=embed, ephemeral=True)
 
 # @param id: 課題ID
