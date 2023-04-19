@@ -17,7 +17,7 @@ def get_date_diff(dt: datetime) -> int:
 
 class HWModal(Modal):
     def __init__(self, database):
-        super().__init__(title="Test Modal")
+        super().__init__(title="課題登録")
         self.database = database
 
         self.subject = InputText(label="教科名", min_length=1, max_length=16)
@@ -55,7 +55,7 @@ class HWModal(Modal):
 
 class ConfirmRemoveHWModal(Modal):
     def __init__(self, database: Database, homework: list[id, str, str, str]):
-        super().__init__(title="Test Modal")
+        super().__init__(title="課題削除の承認")
         self.database = database
         self.homework = homework
 
