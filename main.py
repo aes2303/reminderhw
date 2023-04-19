@@ -38,9 +38,10 @@ async def on_ready():
 
 @bot.slash_command(guild_ids=GUILD_IDS)
 async def help(ctx: discord.ApplicationContext):
+    """ヘルプを表示します。"""
     embed = Embed(title="ヘルプ", color=Color.green())
-    embed.add_field(name="/get_notify", value="通知を受け取るようになります。", inline=False)
-    embed.add_field(name="/remove_notify", value="通知を受け取らないようになります。", inline=False)
+    embed.add_field(name="/enable_notify", value="通知を受け取るようになります。", inline=False)
+    embed.add_field(name="/disable_notify", value="通知を受け取らないようになります。", inline=False)
     embed.add_field(name="/add_homework", value="課題を追加します。", inline=False)
     embed.add_field(name="/get_homework", value="課題一覧を表示します。", inline=False)
     embed.add_field(name="/get_homework_week", value="1週間以内の課題を表示します。", inline=False)
@@ -51,21 +52,26 @@ async def help(ctx: discord.ApplicationContext):
     await ctx.respond(embed=embed, ephemeral=True)
 
 @bot.slash_command(guild_ids=GUILD_IDS)
-async def get_notify(ctx: discord.ApplicationContext):
+async def enable_notify(ctx: discord.ApplicationContext):
+    """通知を受け取るようになります。"""
     await ctx.author.add_roles(discord.utils.get(ctx.guild.roles, name=NOTIFY_ROLE_NAME))
     await ctx.respond("通知を受け取るようになりました。", ephemeral=True)
 
 @bot.slash_command(guild_ids=GUILD_IDS)
-async def remove_notify(ctx: discord.ApplicationContext):
+async def disable_notify(ctx: discord.ApplicationContext):
+    """通知を受け取らないようになります。"""
     await ctx.author.remove_roles(discord.utils.get(ctx.guild.roles, name=NOTIFY_ROLE_NAME))
     await ctx.respond("通知を受け取らないようになりました。", ephemeral=True)
 
 @bot.slash_command(guild_ids=GUILD_IDS)
 async def add_homework(ctx: discord.ApplicationContext):
+    """課題を追加します。"""
     await ctx.send_modal(HWModal(database))
 
+# @param display_id: 課題IDを表示するかどうか
 @bot.slash_command(guild_ids=GUILD_IDS)
 async def get_homework(ctx: discord.ApplicationContext, display_id: bool = False):
+    """課題一覧を表示します。"""
     await ctx.defer(ephemeral=True)
     homeworks = database.get_homeworks()
     devided_homeworks = [homeworks[i:i+10] for i in range(0, len(homeworks), 10)]
@@ -82,8 +88,10 @@ async def get_homework(ctx: discord.ApplicationContext, display_id: bool = False
     paginator = pages.Paginator(pages=display_pages, show_disabled=False)
     await paginator.respond(ctx.interaction, ephemeral=True)
 
+# @param display_id: 課題IDを表示するかどうか
 @bot.slash_command(guild_ids=GUILD_IDS)
 async def get_homework_week(ctx: discord.ApplicationContext, display_id: bool = False):
+    """1週間以内の課題を表示します。"""
     embed = Embed(title="1週間以内の課題", color=Color.green())
     homeworks = [homework for homework in sorted(database.get_homeworks(), key=lambda x: x[3]) if 0 <= get_date_diff(homework[3]) <= 7]
     for homework in homeworks:
@@ -94,8 +102,10 @@ async def get_homework_week(ctx: discord.ApplicationContext, display_id: bool = 
             embed.add_field(name=f"{subject} {name}", value=date.strftime("%Y/%m/%d %H:%M"), inline=False)
     await ctx.respond(embed=embed, ephemeral=True)
 
+# @param display_id: 課題IDを表示するかどうか
 @bot.slash_command(guild_ids=GUILD_IDS)
 async def get_homework_month(ctx: discord.ApplicationContext, display_id: bool = False):
+    """1カ月以内の課題を表示します。"""
     embed = Embed(title="1カ月以内の課題", color=Color.green())
     homeworks = [homework for homework in database.get_homeworks() if 0 <= get_date_diff(homework[3]) <= 30]
     for homework in homeworks:
@@ -106,8 +116,10 @@ async def get_homework_month(ctx: discord.ApplicationContext, display_id: bool =
             embed.add_field(name=f"{subject} {name}", value=date.strftime("%Y/%m/%d %H:%M"), inline=False)
     await ctx.respond(embed=embed, ephemeral=True)
 
+# @param id: 課題ID
 @bot.slash_command(guild_ids=GUILD_IDS)
 async def remove_homework(ctx: discord.ApplicationContext, id: int):
+    """課題を削除します。"""
     homework = database.get_homework(id)
     await ctx.send_modal(ConfirmRemoveHWModal(database, homework))
 
