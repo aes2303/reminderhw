@@ -1,9 +1,9 @@
-import asyncio, discord, mysql.connector, os, pytz
-from datetime import datetime, timezone, timedelta
-from dotenv import load_dotenv, find_dotenv
-from discord.ext import tasks
+import discord, os
+from discord.ext import pages, tasks
+from dotenv import find_dotenv, load_dotenv
 
 from database import Database
+from util import *
 
 load_dotenv(find_dotenv(), verbose=True)
 client = discord.Client()
@@ -11,172 +11,123 @@ client = discord.Client()
 DISCORD_BOT_TOKEN = os.environ.get('DISCORD_BOT_TOKEN')
 GUILD_IDS = [int(os.environ.get('GUILD_ID'))]
 NOTIFY_CHANNEL_NAME = os.environ.get('NOTIFY_CHANNEL_NAME')
+NOTIFY_ROLE_NAME = os.environ.get('NOTIFY_ROLE_NAME')
 
 intents = discord.Intents.all()
 bot = discord.Bot(command_prefix="/", intents=intents)
-database = Database(
-    os.environ.get('HOST'),
-    os.environ.get('USER'),
-    os.environ.get('PASSWORD'),
-    os.environ.get('DATABASE')
-)
-
-jst = pytz.timezone('Asia/Tokyo')
-
-async def send_message(ctx, title, description, color, ephemeral):
-    embed = discord.Embed(title=title, description=description, color=color)
-    await ctx.respond(embed=embed, ephemeral=ephemeral)
-
-async def notify_message(bot, title, description, color):
-    guild = discord.utils.get(bot.guilds, id=GUILD_IDS[0])
-    channel = discord.utils.get(guild.channels, name=NOTIFY_CHANNEL_NAME)
-    embed = discord.Embed(title=title, description=description, color=color)
-    notify_role_id = discord.utils.get(channel.guild.roles, name="notify").id
-    await channel.send(f"<@&{notify_role_id}>", embed=embed)
+database = Database(os.environ.get('HOST'), os.environ.get('USER'), os.environ.get('PASSWORD'), os.environ.get('DATABASE'))
 
 @bot.event
 async def on_ready():
-    periodic_func.start()
-    for guild in bot.guilds:
-        if not discord.utils.get(guild.roles, name="notify"):
-            await guild.create_role(name="notify")
+    notify_homework.start()
+
+    guild = discord.utils.get(bot.guilds, id=GUILD_IDS[0])
+    print(f"{bot.user.name} として {guild.name} にログインしました。")
+
+    notify_channel = discord.utils.get(guild.channels, name=NOTIFY_CHANNEL_NAME)
+    if notify_channel is None:
+        notify_channel = await guild.create_text_channel(NOTIFY_CHANNEL_NAME)
+        print(f"#{notify_channel.name} を作成しました。")
+    notify_role = discord.utils.get(guild.roles, name=NOTIFY_ROLE_NAME)
+    if notify_role is None:
+        notify_role = await guild.create_role(name=NOTIFY_ROLE_NAME)
+        print(f"@{notify_role.name} を作成しました。")
+    await notify_channel.set_permissions(notify_role, read_messages=True)
+    await notify_channel.set_permissions(guild.default_role, read_messages=False)
+    print(f"#{notify_channel.name} に通知します。")
 
 @bot.slash_command(guild_ids=GUILD_IDS)
-async def notify_me(ctx, notify: bool):
-    """メンションによる通知を受け取るかどうかを設定する"""
-    role = discord.utils.get(ctx.guild.roles, name="notify")
-    if notify:
-        await ctx.author.add_roles(role)
-        await send_message(ctx, "Reminder HW", "通知を受け取るように設定したよ！", 0x00ff00, True)
-    else:
-        await ctx.author.remove_roles(role)
-        await send_message(ctx, "Reminder HW", "通知を受け取らないように設定したよ！", 0x00ff00, True)
+async def help(ctx: discord.ApplicationContext):
+    embed = Embed(title="ヘルプ", color=Color.green())
+    embed.add_field(name="/get_notify", value="通知を受け取るようになります。", inline=False)
+    embed.add_field(name="/remove_notify", value="通知を受け取らないようになります。", inline=False)
+    embed.add_field(name="/add_homework", value="課題を追加します。", inline=False)
+    embed.add_field(name="/get_homework", value="課題一覧を表示します。", inline=False)
+    embed.add_field(name="/get_homework_week", value="1週間以内の課題を表示します。", inline=False)
+    embed.add_field(name="/get_homework_month", value="1カ月以内の課題を表示します。", inline=False)
+    embed.add_field(name="/get_homework_id", value="課題一覧を表示します。", inline=False)
+    embed.add_field(name="/get_homework_week_id", value="1週間以内の課題を表示します。", inline=False)
+    embed.add_field(name="/get_homework_month_id", value="1カ月以内の課題を表示します。", inline=False)
+    await ctx.respond(embed=embed, ephemeral=True)
 
 @bot.slash_command(guild_ids=GUILD_IDS)
-async def add_hw(ctx, subject: str, hw: str, due_date: str):
-    """課題を追加する"""
-    subjects = database.get_subjects()
-    if subject not in [subject[0] for subject in subjects]:
-        if len(subjects) == 0:
-            await send_message(ctx, "Reminder HW", "教科が登録されてないよ！", 0xff0000, True)
-            return
-        subjects = "\n".join([f"- {subject[0]}" for subject in subjects])
-        await send_message(ctx, "Reminder HW", f"その教科は登録されてないよ！\n登録されている教科一覧\n{subjects}", 0xff0000, True)
-        return
-
-    try:
-        datetime.strptime(due_date, '%Y/%m/%d')
-    except ValueError:
-        await send_message(ctx, "Reminder HW", "期限の形式が違うよ！\nYYYY/MM/DDで入力してね！", 0xff0000, True)
-        return
-
-    if (jst.localize(datetime.strptime(due_date, '%Y/%m/%d')) - datetime.now(timezone(timedelta(hours=9)))).days < 0:
-        await send_message(ctx, "Reminder HW", "期限が過去の日付だよ！", 0xff0000, True)
-        return
-
-    if database.add_hw(subject, hw, due_date):
-        await send_message(ctx, "Reminder HW", f"以下の内容で追加したよ！\n教科: {subject}\n課題: {hw}\n期限: {due_date}", 0x00ffff, False)
-    else:
-        await send_message(ctx, "Reminder HW", "その課題は既に登録されてるよ！", 0xff0000, True)
+async def get_notify(ctx: discord.ApplicationContext):
+    await ctx.author.add_roles(discord.utils.get(ctx.guild.roles, name=NOTIFY_ROLE_NAME))
+    await ctx.respond("通知を受け取るようになりました。", ephemeral=True)
 
 @bot.slash_command(guild_ids=GUILD_IDS)
-async def get_hw_week(ctx):
-    """1週間以内の全ての課題を取得する"""
-    homework = database.get_all_hw()
-    homework = [hw for hw in homework if 0 <= (jst.localize(datetime.strptime(hw[2], "%Y/%m/%d")) - datetime.now(timezone(timedelta(hours=9)))).days + 1 <= 6]
-    homework.sort(key=lambda x: datetime.strptime(x[2], "%Y/%m/%d"))
-    if homework:
-        homework = "\n".join([f"[{hw[0]}] {hw[1]} ({hw[2]})" for hw in homework])
-        await send_message(ctx, "Reminder HW", homework + "\n⚠ 自己責任でお願いします。通常、提出時間は記載されていないので注意してください。", 0x00ffff, True)
-    else:
-        await send_message(ctx, "Reminder HW", "課題は登録されてないよ！", 0xff0000, True)
+async def remove_notify(ctx: discord.ApplicationContext):
+    await ctx.author.remove_roles(discord.utils.get(ctx.guild.roles, name=NOTIFY_ROLE_NAME))
+    await ctx.respond("通知を受け取らないようになりました。", ephemeral=True)
 
 @bot.slash_command(guild_ids=GUILD_IDS)
-async def get_hw_month(ctx):
-    """30日以内の教科の課題を取得する"""
-    homework = database.get_all_hw()
-    homework = [hw for hw in homework if 0 <= (jst.localize(datetime.strptime(hw[2], "%Y/%m/%d")) - datetime.now(timezone(timedelta(hours=9)))).days + 1 <= 29]
-    homework.sort(key=lambda x: datetime.strptime(x[2], "%Y/%m/%d"))
-    if homework:
-        homework = "\n".join([f"[{hw[0]}] {hw[1]} ({hw[2]})" for hw in homework])
-        await send_message(ctx, "Reminder HW", homework + "\n⚠ 自己責任でお願いします。通常、提出時間は記載されていないので注意してください。", 0x00ffff, True)
-    else:
-        await send_message(ctx, "Reminder HW", "課題は登録されてないよ！", 0xff0000, True)
+async def add_homework(ctx: discord.ApplicationContext):
+    await ctx.send_modal(HWModal(database))
 
 @bot.slash_command(guild_ids=GUILD_IDS)
-async def delete_hw(ctx, subject: str, hw: str, due_date: str):
-    """課題を削除する"""
-    if database.delete_hw(subject, hw, due_date):
-        await send_message(ctx, "Reminder HW", f"教科: {subject}\n課題: {hw}\n期限: {due_date}\nを削除したよ！", 0x00ffff, False)
-    else:
-        await send_message(ctx, "Reminder HW", "その課題は登録されてないよ！", 0xff0000, True)
+async def get_homework(ctx: discord.ApplicationContext, display_id: bool = False):
+    await ctx.defer(ephemeral=True)
+    homeworks = database.get_homeworks()
+    devided_homeworks = [homeworks[i:i+10] for i in range(0, len(homeworks), 10)]
+    display_pages = []
+    for homeworks in devided_homeworks:
+        embed = Embed(title="課題一覧", color=Color.green())
+        for homework in homeworks:
+            id, subject, name, date = homework[0], homework[1], homework[2], homework[3]
+            if display_id:
+                embed.add_field(name=f"[{id}] {subject} {name}", value=f"{date.strftime('%Y/%m/%d %H:%M')}", inline=False)
+            else:
+                embed.add_field(name=f"{subject} {name}", value=date, inline=False)
+        display_pages.append(embed)
+    paginator = pages.Paginator(pages=display_pages, show_disabled=False)
+    await paginator.respond(ctx.interaction, ephemeral=True)
 
 @bot.slash_command(guild_ids=GUILD_IDS)
-async def add_subject(ctx, subject: str):
-    """教科を追加する"""
-    if database.add_subject(subject):
-        await send_message(ctx, "Reminder HW", f"教科: {subject}\nを追加したよ!", 0x00ffff, False)
-    else:
-        await send_message(ctx, "Reminder HW", "その教科は既に登録されてるよ！", 0xff0000, True)
+async def get_homework_week(ctx: discord.ApplicationContext, display_id: bool = False):
+    embed = Embed(title="1週間以内の課題", color=Color.green())
+    homeworks = [homework for homework in sorted(database.get_homeworks(), key=lambda x: x[3]) if 0 <= get_date_diff(homework[3]) <= 7]
+    for homework in homeworks:
+        id, subject, name, date = homework[0], homework[1], homework[2], homework[3]
+        if display_id:
+            embed.add_field(name=f"[{id}] {subject} {name}", value=f"{date.strftime('%Y/%m/%d %H:%M')}", inline=False)
+        else:
+            embed.add_field(name=f"{subject} {name}", value=date.strftime("%Y/%m/%d %H:%M"), inline=False)
+    await ctx.respond(embed=embed, ephemeral=True)
 
 @bot.slash_command(guild_ids=GUILD_IDS)
-async def get_subjects(ctx):
-    """教科を取得する"""
-    subjects = database.get_subjects()
-    if subjects:
-        subjects = "\n".join([f"教科: {subject[0]}" for subject in subjects])
-        await send_message(ctx, "Reminder HW", subjects, 0x00ffff, True)
-    else:
-        await send_message(ctx, "Reminder HW", "教科は登録されてないよ！", 0xff0000, True)
+async def get_homework_month(ctx: discord.ApplicationContext, display_id: bool = False):
+    embed = Embed(title="1カ月以内の課題", color=Color.green())
+    homeworks = [homework for homework in database.get_homeworks() if 0 <= get_date_diff(homework[3]) <= 30]
+    for homework in homeworks:
+        id, subject, name, date = homework[0], homework[1], homework[2], homework[3]
+        if display_id:
+            embed.add_field(name=f"[{id}] {subject} {name}", value=f"{date.strftime('%Y/%m/%d %H:%M')}", inline=False)
+        else:
+            embed.add_field(name=f"{subject} {name}", value=date.strftime("%Y/%m/%d %H:%M"), inline=False)
+    await ctx.respond(embed=embed, ephemeral=True)
 
 @bot.slash_command(guild_ids=GUILD_IDS)
-async def delete_subject(ctx, subject: str):
-    """教科を削除する"""
-    if database.delete_subject(subject):
-        await send_message(ctx, "Reminder HW", f"教科: {subject}\nを削除したよ!", 0x00ffff, False)
-    else:
-        await send_message(ctx, "Reminder HW", "その教科は登録されてないよ！", 0xff0000, True)
+async def remove_homework(ctx: discord.ApplicationContext, id: int):
+    homework = database.get_homework(id)
+    await ctx.send_modal(ConfirmRemoveHWModal(database, homework))
 
-@bot.slash_command(guild_ids=GUILD_IDS)
-async def help(ctx):
-    command_and_description = {
-        "/notify_me": "通知を受け取るかどうかを設定する",
-        "/add_hw": "課題を追加する",
-        "/get_hw_week": "1週間以内の課題を取得する",
-        "/get_hw_month": "30日以内の全ての課題を取得する",
-        "/delete_hw": "課題を削除する",
-        "/add_subject": "教科を追加する",
-        "/get_subjects": "教科を取得する",
-        "/delete_subject": "教科を削除する",
-    }
-    await send_message(ctx, "Reminder HW", "\n".join([f"{command}: {description}" for command, description in command_and_description.items()]), 0x00ff00, True)
+@tasks.loop(seconds=60)
+async def notify_homework():
+    now = get_jst_now().strftime("%H:%M")
+    if now == "07:00" or now == "12:00" or now == "22:00":
+        embed = Embed(title="1週間以内の課題", color=Color.green())
+        homeworks = [homework for homework in sorted(database.get_homeworks(), key=lambda x: x[3]) if 0 <= get_date_diff(homework[3]) <= 7]
+        if len(homeworks) == 0:
+            embed.add_field(name="課題はありません。", value="お疲れ様です。", inline=False)
+        else:
+            for homework in homeworks:
+                id, subject, name, date = homework[0], homework[1], homework[2], homework[3]
+                embed.add_field(name=f"{subject} {name}", value=date.strftime("%Y/%m/%d %H:%M"), inline=False)
+        guild = discord.utils.get(bot.guilds, id=GUILD_IDS[0])
+        channel = discord.utils.get(guild.channels, name=NOTIFY_CHANNEL_NAME)
+        notify_role_id = discord.utils.get(channel.guild.roles, name="notify").id
+        await channel.send(f"<@&{notify_role_id}>", embed=embed)
 
-# 1週間以内の課題を取得して、期限が近い順に並べて通知する
-async def task():
-    homework = database.get_all_hw()
-    homework = [hw for hw in homework if 0 <= (jst.localize(datetime.strptime(hw[2], "%Y/%m/%d")) - datetime.now(timezone(timedelta(hours=9)))).days + 1 <= 6]
-    if homework:
-        homework = sorted(homework, key=lambda x: datetime.strptime(x[2], "%Y/%m/%d"))
-        homework = "\n".join([f"[{hw[0]}] {hw[1]} ({hw[2]})" for hw in homework])
-        await notify_message(bot, "Half Day Reminder", f"1週間以内の課題を通知します\n今日の日付: {datetime.now(timezone(timedelta(hours=9))).strftime('%Y/%m/%d')}\n{homework}\n⚠ 自己責任でお願いします。通常、提出時間は記載されていないので注意してください。", 0xffff00)
-    else:
-        await notify_message(bot, "Half Day Reminder", "1週間以内の課題は登録されてないよ！\n⚠ 自己責任でお願いします。通常、提出時間は記載されていないので注意してください。", 0xffff00)
-
-first_time = True
-context = True
-@tasks.loop(seconds=40)
-async def periodic_func():
-    global first_time, context
-    now = datetime.now(timezone(timedelta(hours=9))).strftime('%H:%M')
-    if now == '00:00' or now == '12:00':
-        if first_time:
-            first_time = False
-            context = now == '00:00'
-            await task()
-            return
-        if context and now == '12:00' or not context and now == '00:00':
-            await task()
-            context = not context
 
 if __name__ == "__main__":
     bot.run(DISCORD_BOT_TOKEN)
