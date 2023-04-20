@@ -1,4 +1,5 @@
 import mysql.connector
+from mysql.connector.errors import OperationalError
 from datetime import datetime
 from dataclasses import dataclass
 
@@ -35,20 +36,44 @@ class Database:
         self.connection.close()
 
     def execute(self, query, params=None):
-        self.cursor.execute(query, params)
-        self.connection.commit()
+        try:
+            self.cursor.execute(query, params)
+            self.connection.commit()
+        except OperationalError:
+            print("Connection lost, reconnecting...")
+            self.connect(database=False)
+            self.cursor.execute(query, params)
+            self.connection.commit()
 
     def fetch(self, query, params=None):
-        self.cursor.execute(query, params)
-        return self.cursor.fetchall()
+        try:
+            self.cursor.execute(query, params)
+            return self.cursor.fetchall()
+        except OperationalError:
+            print("Connection lost, reconnecting...")
+            self.connect(database=False)
+            self.cursor.execute(query, params)
+            return self.cursor.fetchall()
 
     def fetch_one(self, query, params=None):
-        self.cursor.execute(query, params)
-        return self.cursor.fetchone()
+        try:
+            self.cursor.execute(query, params)
+            return self.cursor.fetchone()
+        except OperationalError:
+            print("Connection lost, reconnecting...")
+            self.connect(database=False)
+            self.cursor.execute(query, params)
+            return self.cursor.fetchone()
 
     def fetch_all(self, query, params=None):
-        self.cursor.execute(query, params)
-        return self.cursor.fetchall()
+        try:
+            self.cursor.execute(query, params)
+            return self.cursor.fetchall()
+        except OperationalError:
+            print("Connection lost, reconnecting...")
+            self.connect(database=False)
+            self.cursor.execute(query, params)
+            return self.cursor.fetchall()
 
     def add_homework(self, subject: str, name: str, date: datetime, description: str):
         query = "INSERT INTO homework (subject, name, date, description) VALUES (%s, %s, %s, %s)"
