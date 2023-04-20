@@ -1,4 +1,5 @@
 import mysql.connector
+from _mysql_connector import MySQLInterfaceError
 from mysql.connector.errors import OperationalError
 from datetime import datetime
 from dataclasses import dataclass
@@ -9,7 +10,7 @@ class Database:
     user: str
     password: str
     database: str
-    
+
     def __post_init__(self):
         self.connect(database=False)
         self.create_database()
@@ -44,6 +45,11 @@ class Database:
             self.connect(database=False)
             self.cursor.execute(query, params)
             self.connection.commit()
+        except MySQLInterfaceError:
+            print("Connection timeout, reconnecting...")
+            self.connect(database=False)
+            self.cursor.execute(query, params)
+            self.connection.commit()
 
     def fetch(self, query, params=None):
         try:
@@ -51,6 +57,11 @@ class Database:
             return self.cursor.fetchall()
         except OperationalError:
             print("Connection lost, reconnecting...")
+            self.connect(database=False)
+            self.cursor.execute(query, params)
+            return self.cursor.fetchall()
+        except MySQLInterfaceError:
+            print("Connection timeout, reconnecting...")
             self.connect(database=False)
             self.cursor.execute(query, params)
             return self.cursor.fetchall()
@@ -64,6 +75,11 @@ class Database:
             self.connect(database=False)
             self.cursor.execute(query, params)
             return self.cursor.fetchone()
+        except MySQLInterfaceError:
+            print("Connection timeout, reconnecting...")
+            self.connect(database=False)
+            self.cursor.execute(query, params)
+            return self.cursor.fetchone()
 
     def fetch_all(self, query, params=None):
         try:
@@ -71,6 +87,11 @@ class Database:
             return self.cursor.fetchall()
         except OperationalError:
             print("Connection lost, reconnecting...")
+            self.connect(database=False)
+            self.cursor.execute(query, params)
+            return self.cursor.fetchall()
+        except MySQLInterfaceError:
+            print("Connection timeout, reconnecting...")
             self.connect(database=False)
             self.cursor.execute(query, params)
             return self.cursor.fetchall()
