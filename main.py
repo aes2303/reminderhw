@@ -34,6 +34,10 @@ async def on_ready():
     if notify_role is None:
         notify_role = await guild.create_role(name=NOTIFY_ROLE_NAME)
         print(f"@{notify_role.name} を作成しました。")
+    notify_dm_role = discord.utils.get(guild.roles, name=NOTIFY_DM_ROLE_NAME)
+    if notify_dm_role is None:
+        notify_dm_role = await guild.create_role(name=NOTIFY_DM_ROLE_NAME)
+        print(f"@{notify_dm_role.name} を作成しました。")
     await notify_channel.set_permissions(notify_role, read_messages=True)
     await notify_channel.set_permissions(guild.default_role, read_messages=False)
     print(f"#{notify_channel.name} に通知します。")
@@ -64,6 +68,18 @@ async def disable_notify(ctx: discord.ApplicationContext):
     """通知を受け取らないようになります。"""
     await ctx.author.remove_roles(discord.utils.get(ctx.guild.roles, name=NOTIFY_ROLE_NAME))
     await ctx.respond("通知を受け取らないようになりました。", ephemeral=True)
+
+@bot.slash_command(guild_ids=GUILD_IDS)
+async def enable_notify_dm(ctx: discord.ApplicationContext):
+    """DMで課題提出の1時間前に通知を受け取るようになります。"""
+    await ctx.author.add_roles(discord.utils.get(ctx.guild.roles, name=NOTIFY_DM_ROLE_NAME))
+    await ctx.respond("DMで通知を受け取るようになりました。", ephemeral=True)
+
+@bot.slash_command(guild_ids=GUILD_IDS)
+async def disable_notify_dm(ctx: discord.ApplicationContext):
+    """DMで課題提出の1時間前に通知を受け取らないようになります。"""
+    await ctx.author.remove_roles(discord.utils.get(ctx.guild.roles, name=NOTIFY_DM_ROLE_NAME))
+    await ctx.respond("DMで通知を受け取らないようになりました。", ephemeral=True)
 
 @bot.slash_command(guild_ids=GUILD_IDS)
 async def add_homework(ctx: discord.ApplicationContext):
