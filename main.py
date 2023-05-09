@@ -92,7 +92,7 @@ async def add_homework(ctx: discord.ApplicationContext):
 async def get_homework(ctx: discord.ApplicationContext, display_id: bool = False, display_description: bool = False):
     """課題一覧を表示します。"""
     await ctx.defer(ephemeral=True)
-    homeworks = database.get_homeworks()
+    homeworks = [homework for homework in database.get_homeworks() if 0 <= get_date_diff(homework[3])]
     devided_homeworks = [homeworks[i:i+10] for i in range(0, len(homeworks), 10)]
     display_pages = []
     for homeworks in devided_homeworks:
