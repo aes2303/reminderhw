@@ -15,6 +15,9 @@ def jst_localize(dt: datetime) -> datetime:
 def get_date_diff(dt: datetime) -> int:
     return (jst_localize(dt) - get_jst_now()).days
 
+def get_minute_diff(dt: datetime) -> int:
+    return (jst_localize(dt) - get_jst_now()).seconds // 60
+
 class HWModal(Modal):
     def __init__(self, database):
         super().__init__(title="課題登録")

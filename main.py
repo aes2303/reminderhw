@@ -12,6 +12,7 @@ DISCORD_BOT_TOKEN = os.environ.get('DISCORD_BOT_TOKEN')
 GUILD_IDS = [int(os.environ.get('GUILD_ID'))]
 NOTIFY_CHANNEL_NAME = os.environ.get('NOTIFY_CHANNEL_NAME')
 NOTIFY_ROLE_NAME = os.environ.get('NOTIFY_ROLE_NAME')
+NOTIFY_DM_ROLE_NAME = os.environ.get('NOTIFY_DM_ROLE_NAME')
 
 intents = discord.Intents.all()
 bot = discord.Bot(command_prefix="/", intents=intents)
@@ -20,6 +21,7 @@ database = Database(os.environ.get('HOST'), os.environ.get('USER'), os.environ.g
 @bot.event
 async def on_ready():
     notify_homework.start()
+    notify_dm_homework.start()
 
     guild = discord.utils.get(bot.guilds, id=GUILD_IDS[0])
     print(f"{bot.user.name} として {guild.name} にログインしました。")
@@ -164,6 +166,24 @@ async def notify_homework():
         notify_role_id = discord.utils.get(channel.guild.roles, name="notify").id
         await channel.send(f"<@&{notify_role_id}>", embed=embed)
 
+@tasks.loop(seconds=60)
+async def notify_dm_homework():
+    now = get_jst_now().strftime("%H:%M")
+    homeworks = [homework for homework in sorted(database.get_homeworks(), key=lambda x: x[3]) if 0 <= get_date_diff(homework[3]) <= 1]
+    guild = discord.utils.get(bot.guilds, id=GUILD_IDS[0])
+    target_users = [member for member in guild.members if not member.bot and discord.utils.get(member.roles, name=NOTIFY_DM_ROLE_NAME) is not None]
+    for homework in homeworks:
+        minute_diff = get_minute_diff(homework[3])
+        if minute_diff != 60:
+            continue
+        id, subject, name, date, description = homework[0], homework[1], homework[2], homework[3], homework[4]
+        embed = Embed(title="課題の締切が近づいています。", color=Color.green())
+        embed.add_field(name=f"{subject} {name}", value=date.strftime("%Y/%m/%d %H:%M"), inline=False)
+        if description != "":
+            embed.add_field(name="説明", value=description, inline=False)
+        for user in target_users:
+            channel = await user.create_dm()
+            await channel.send(f"<@{user.id}>", embed=embed)
 
 if __name__ == "__main__":
     bot.run(DISCORD_BOT_TOKEN)
