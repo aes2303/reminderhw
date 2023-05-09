@@ -150,7 +150,7 @@ async def remove_homework(ctx: discord.ApplicationContext, id: int):
 @tasks.loop(seconds=60)
 async def notify_homework():
     now = get_jst_now().strftime("%H:%M")
-    if now == "07:00" or now == "12:00" or now == "22:00":
+    if now == "07:00" or now == "22:00":
         embed = Embed(title="1週間以内の課題", color=Color.green())
         homeworks = [homework for homework in sorted(database.get_homeworks(), key=lambda x: x[3]) if 0 <= get_date_diff(homework[3]) <= 7]
         if len(homeworks) == 0:
