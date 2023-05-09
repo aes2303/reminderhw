@@ -185,7 +185,7 @@ async def notify_homework():
 @tasks.loop(seconds=60)
 async def notify_dm_homework():
     now = get_jst_now().strftime("%H:%M")
-    homeworks = [homework for homework in sorted(database.get_homeworks(), key=lambda x: x[3]) if 0 <= get_date_diff(homework[3]) <= 1]
+    homeworks = [homework for homework in sorted(database.get_homeworks(), key=lambda x: x[3]) if get_date_diff(homework[3]) == 0]
     guild = discord.utils.get(bot.guilds, id=GUILD_IDS[0])
     target_users = [member for member in guild.members if not member.bot and discord.utils.get(member.roles, name=NOTIFY_DM_ROLE_NAME) is not None]
     for homework in homeworks:
